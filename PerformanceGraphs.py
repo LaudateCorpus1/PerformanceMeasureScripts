@@ -53,6 +53,7 @@ cli.add_argument('--outdir', '-o', nargs='?', default='out', dest='outdir', help
 cli.add_argument('--time-unit', nargs='?', default='ms', dest='time_unit', help='The time unit to print as a label to the diagrams. Default: ms')
 cli.add_argument('--hide-x-label', action='store_true', dest='hide_x_label', help='Hides the x label from every Graph. Use this if the label does not fit your use case.')
 cli.add_argument('--defaultName', nargs='?', default='default', dest='defaultTestCaseName', help='Defines the default name of a test without a name in the identifier. Default: default')
+cli.add_argument('--baselineIndex', '-b', nargs='?', default=0, type=int, dest='baselineIndex', help='Define which index to assume for a baseline to calculate speedup and scalability Default: 0')
 cli.add_argument('input', nargs='?', type=argparse.FileType('r'), default=sys.stdin, help='File to read for input data. Defaults to reading stdin')
 args = cli.parse_args()
 
@@ -226,10 +227,11 @@ class MachineTestCase:
         createFolder(folder)
         return folder
 
-    def generateBaseLine(self):
-        if not 0 in self.testRuns.keys(): return False
+    def generateBaseLine(self, index=0):
+        baseline = self.testRuns.get(index, None)
+        if not baseline: return False
         for run in self.testRuns.values():
-            run.calculateValuesFromBaseline(self.testRuns[0])
+            run.calculateValuesFromBaseline(baseline)
         return True
 
     def __drawGraph(self, mappingData=None, mappingError=None, plotName="", folder="", y_label="", drawViolin=False):
@@ -262,8 +264,8 @@ class MachineTestCase:
         # can't add label for violin plot therefor not adding it
         plt.violinplot(y_data, x_data, showmeans=True)
 
-    def drawAll(self):
-        self.draw()
+    def drawAll(self, baselineIndex=0):
+        self.draw(baselineIndex=baselineIndex)
         for testRun in self.testRuns.values():
             testRun.draw()
 
@@ -271,14 +273,14 @@ class MachineTestCase:
         for testRun in self.testRuns.values():
             testRun.report()
 
-    def draw(self):
+    def draw(self, baselineIndex=0):
         if len(self.testRuns) <= 1:
             logging.warning(self.caseName + "$" + self.machine + ": Skip drawing graphs because only one datapoint to draw")
         else:
             folder = self.__createTestCaseFolder()
             self.__drawGraph(lambdaPerformanceTime, lambdaPerformanceTimeError, plotNameExecutionTime, folder, y_label_Time)
             self.__drawGraph(lambdaData, plotName=plotNameExecutionTimeViolin, folder=folder, y_label=y_label_Time, drawViolin=True)
-            if self.generateBaseLine():
+            if self.generateBaseLine(index=baselineIndex):
                 self.__drawGraph(lambdaSpeedup, lambdaSpeedupError, plotNameSpeedup, folder, y_label_Speedup)
                 self.__drawGraph(lambdaScaleEfficiency, lambda x: 0, plotNameScaleEfficiency, folder, y_label_ScaleEff)
             else:
@@ -318,23 +320,23 @@ class TestCase:
         createFolder(folder)
         plt.savefig(folder + "/" + plotName + ".pdf", bbox_inches='tight')
 
-    def drawAll(self):
-        self.draw()
+    def drawAll(self, baselineIndex=0):
+        self.draw(baselineIndex=baselineIndex)
         for machine in self.machines.values():
-            machine.drawAll()
+            machine.drawAll(baselineIndex=baselineIndex)
 
     def reportAll(self):
         for testRun in self.machines.values():
             testRun.reportAll()
 
-    def draw(self):
+    def draw(self, baselineIndex=0):
         if len(self.machines) <= 1:
             logging.warning(self.caseName + ": Skip drawing graphs because only one datapoint to draw")
         else:
             folder = self.__createTestCaseFolder()
             hasAllBaselines = True
             for machine in self.machines.values():
-                if not machine.generateBaseLine(): hasAllBaselines = False
+                if not machine.generateBaseLine(index=baselineIndex): hasAllBaselines = False
             self.__drawGraph(lambdaPerformanceTime, lambdaPerformanceTimeError, plotNameExecutionTime, folder, y_label_Time)
             if hasAllBaselines:
                 self.__drawGraph(lambdaSpeedup, lambdaSpeedupError, plotNameSpeedup, folder, y_label_Speedup)
@@ -371,6 +373,6 @@ for testCaseString in args.input:# go through each line of the input
 # Output all diagrams to disk
 for testCase in testcases.values():
     print("Start drawing test case: " + testCase.caseName)
-    testCase.drawAll()
+    testCase.drawAll(baselineIndex=args.baselineIndex)
     print("Start report for test case: " + testCase.caseName)
     testCase.reportAll()
