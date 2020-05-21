@@ -45,6 +45,7 @@ plotNameExecutionTime = "executionTime"
 plotNameExecutionTimeViolin = "executionTimeViolin"
 plotNameSpeedup = "speedup"
 plotNameScaleEfficiency = "scaleEfficiency"
+plotNameSpeedupScaleEfficiency = "speedupAndScaleEfficiency"
 
 
 cli = argparse.ArgumentParser()
@@ -248,14 +249,35 @@ class MachineTestCase:
         createFolder(folder)
         plt.savefig(folder + "/" + plotName + ".pdf", bbox_inches='tight')
 
-    def drawPartFromLampda(self, mappingData=None, mappingError=None):
+    def __drawGraphTwins(self, mappingData1=None, mappingData2=None, mappingError1=None, mappingError2=None, plotName="", folder="", y_label1="", y_label2=""):
+        if not type(plotName) is str or plotName=="": raise BaseException("Expected plotName that is non empty string")
+        if not type(folder) is str or folder=="": raise BaseException("Expected folder that is non empty string")
+        plt.clf()
+        fig, ax1 = plt.subplots()
+        self.drawPartFromLampda(mappingData1, mappingError1, plt=ax1, fmt='b-')
+        ax1.set_xlabel(x_label_numberThreads)
+        ax1.set_ylabel(y_label1, color='b')
+        ax1.set_ylim(bottom=0)
+        ax1.tick_params('y', colors='b')
+
+        ax2 = ax1.twinx()
+        self.drawPartFromLampda(mappingData2, mappingError2, plt=ax2, fmt='r-')
+        ax2.set_ylabel(y_label2, color='r')
+        ax2.set_ylim(bottom=0)
+        ax2.tick_params('y', colors='r')
+
+        createFolder(folder)
+        plt.savefig(folder + "/" + plotName + ".pdf", bbox_inches='tight')
+
+
+    def drawPartFromLampda(self, mappingData=None, mappingError=None, plt=plt, **kwargs):
         if mappingData == None or mappingError == None: raise BaseException("Expected mapping functions do determine what to draw")
         dictionarySortedByK = sorted(self.testRuns.items())
         x_data = list(map(lambda x: x[0], dictionarySortedByK))
         y_data = list(map(mappingData, dictionarySortedByK))
         y_err = list(map(mappingError, dictionarySortedByK))
-        plt.errorbar(x_data, y_data, y_err, label=self.machine)
-        
+        plt.errorbar(x_data, y_data, y_err, label=self.machine, **kwargs)
+
     def drawViolinPartFromLampda(self, mappingData=None):
         if mappingData == None: raise BaseException("Expected mapping functions do determine what to draw")
         dictionarySortedByK = sorted(self.testRuns.items())
@@ -283,6 +305,7 @@ class MachineTestCase:
             if self.generateBaseLine(index=baselineIndex):
                 self.__drawGraph(lambdaSpeedup, lambdaSpeedupError, plotNameSpeedup, folder, y_label_Speedup)
                 self.__drawGraph(lambdaScaleEfficiency, lambda x: 0, plotNameScaleEfficiency, folder, y_label_ScaleEff)
+                self.__drawGraphTwins(lambdaSpeedup, lambdaScaleEfficiency, lambdaSpeedupError, lambda x: 0, plotNameSpeedupScaleEfficiency, folder, y_label_Speedup, y_label_ScaleEff)
             else:
                 logging.warning(self.caseName + "$" + self.machine + ": Skipping speedup and scale efficiency because not all baselines were found")
 
