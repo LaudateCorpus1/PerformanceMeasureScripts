@@ -53,7 +53,7 @@ cli.add_argument('--outdir', '-o', nargs='?', default='out', dest='outdir', help
 cli.add_argument('--time-unit', nargs='?', default='ms', dest='time_unit', help='The time unit to print as a label to the diagrams. Default: ms')
 cli.add_argument('--hide-x-label', action='store_true', dest='hide_x_label', help='Hides the x label from every Graph. Use this if the label does not fit your use case.')
 cli.add_argument('--defaultName', nargs='?', default='default', dest='defaultTestCaseName', help='Defines the default name of a test without a name in the identifier. Default: default')
-cli.add_argument('input', nargs='?', type=argparse.FileType('r'), default=sys.stdin, helpt='File to read for input data. Defaults to reading stdin')
+cli.add_argument('input', nargs='?', type=argparse.FileType('r'), default=sys.stdin, help='File to read for input data. Defaults to reading stdin')
 args = cli.parse_args()
 
 # global variables and read parameters
