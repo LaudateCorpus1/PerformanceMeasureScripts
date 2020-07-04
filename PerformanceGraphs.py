@@ -278,6 +278,14 @@ class MachineTestCase:
         y_err = list(map(mappingError, dictionarySortedByK))
         plt.errorbar(x_data, y_data, y_err, label=self.machine, **kwargs)
 
+    def drawPartFromLampdaBar(self, mappingData=None, mappingError=None, plt=plt, width=0.9, offset=-0.45, **kwargs):
+        if mappingData == None or mappingError == None: raise BaseException("Expected mapping functions do determine what to draw")
+        dictionarySortedByK = sorted(self.testRuns.items())
+        x_data = np.array(list(map(lambda x: x[0], dictionarySortedByK))) + offset
+        y_data = list(map(mappingData, dictionarySortedByK))
+        y_err = list(map(mappingError, dictionarySortedByK))
+        plt.bar(x_data, y_data, label=self.machine, yerr=y_err, width=width, **kwargs)
+
     def drawViolinPartFromLampda(self, mappingData=None):
         if mappingData == None: raise BaseException("Expected mapping functions do determine what to draw")
         dictionarySortedByK = sorted(self.testRuns.items())
@@ -343,6 +351,22 @@ class TestCase:
         createFolder(folder)
         plt.savefig(folder + "/" + plotName + ".pdf", bbox_inches='tight')
 
+    def __drawGraphBar(self, mappingData=None, mappingError=None, plotName="", folder="", y_label=""):
+        if not type(plotName) is str or plotName=="": raise BaseException("Expected plotName that is non empty string")
+        if not type(folder) is str or folder=="": raise BaseException("Expected folder that is non empty string")
+        plt.clf()
+        width = 0.9 / len(self.machines)
+        offset = -0.45 + width / 2 # Center around mark at this point
+        for machine in self.machines.values():
+            machine.drawPartFromLampdaBar(mappingData, mappingError, offset=offset, width=width)
+            offset += width
+        plt.xlabel(x_label_numberThreads)
+        plt.ylabel(y_label)
+        plt.ylim(bottom=0)
+        plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
+        createFolder(folder)
+        plt.savefig(folder + "/" + plotName + "Bar.pdf", bbox_inches='tight')
+
     def drawAll(self, baselineIndex=0):
         self.draw(baselineIndex=baselineIndex)
         for machine in self.machines.values():
@@ -361,9 +385,12 @@ class TestCase:
             for machine in self.machines.values():
                 if not machine.generateBaseLine(index=baselineIndex): hasAllBaselines = False
             self.__drawGraph(lambdaPerformanceTime, lambdaPerformanceTimeError, plotNameExecutionTime, folder, y_label_Time)
+            self.__drawGraphBar(lambdaPerformanceTime, lambdaPerformanceTimeError, plotNameExecutionTime, folder, y_label_Time)
             if hasAllBaselines:
                 self.__drawGraph(lambdaSpeedup, lambdaSpeedupError, plotNameSpeedup, folder, y_label_Speedup)
+                self.__drawGraphBar(lambdaSpeedup, lambdaSpeedupError, plotNameSpeedup, folder, y_label_Speedup)
                 self.__drawGraph(lambdaParallelEfficiency, lambda x: 0, plotNameParallelEfficiency, folder, y_label_ScaleEff)
+                self.__drawGraphBar(lambdaParallelEfficiency, lambda x: 0, plotNameParallelEfficiency, folder, y_label_ScaleEff)
             else:
                 logging.warning(self.caseName + ": Skipping speedup and parallel efficiency because not all baselines were found")
 
