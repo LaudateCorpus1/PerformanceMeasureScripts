@@ -37,15 +37,15 @@ lambdaPerformanceTime = lambda x: x[1].mean
 lambdaSpeedup = lambda x: x[1].speedup
 lambdaPerformanceTimeError = lambda x: x[1].stdev
 lambdaSpeedupError = lambda x: x[1].speedupError
-lambdaScaleEfficiency = lambda x: x[1].scaleEfficiency * 100
+lambdaParallelEfficiency = lambda x: x[1].parallelEfficiency * 100
 lambdaData = lambda x: np.array(x[1].data)
 
 #plotnames
 plotNameExecutionTime = "executionTime"
 plotNameExecutionTimeViolin = "executionTimeViolin"
 plotNameSpeedup = "speedup"
-plotNameScaleEfficiency = "scaleEfficiency"
-plotNameSpeedupScaleEfficiency = "speedupAndScaleEfficiency"
+plotNameParallelEfficiency = "parallelEfficiency"
+plotNameSpeedupParallelEfficiency = "speedupAndParallelEfficiency"
 
 
 cli = argparse.ArgumentParser()
@@ -62,7 +62,7 @@ args = cli.parse_args()
 #y_labels
 y_label_Time = f"time in {args.time_unit}"
 y_label_Speedup = f"speedup in {args.time_unit}/{args.time_unit}"
-y_label_ScaleEff= "scalability efficiency in %"
+y_label_ScaleEff= "parallel efficiency in %"
 x_label_numberThreads = "Number of threads used"
 if args.hide_x_label:
     x_label_numberThreads = ""
@@ -131,11 +131,11 @@ class SingleTestRun:
         self.baselineReceived = True
         if self==baseline:
             self.speedup = 1.0
-            self.scaleEfficiency = 1.0
+            self.parallelEfficiency = 1.0
             self.speedupError = self.relativeError # * 1.0
         else:
             self.speedup = baseline.mean / self.mean
-            self.scaleEfficiency = self.speedup / self.numThreads
+            self.parallelEfficiency = self.speedup / self.numThreads
             self.speedupError = (self.relativeError + baseline.relativeError) * self.speedup
 
     def draw(self):
@@ -162,7 +162,7 @@ class SingleTestRun:
         if self.baselineReceived:
             stringData += separator + "speedup: " + str(self.speedup)
             stringData += separator + "speedupError: " + str(self.speedupError)
-            stringData += separator + "scaleEfficiency: " + str(self.scaleEfficiency)
+            stringData += separator + "parallelEfficiency: " + str(self.parallelEfficiency)
         else:
             stringData += separator + "No baseline received yet"
         return stringData
@@ -304,10 +304,10 @@ class MachineTestCase:
             self.__drawGraph(lambdaData, plotName=plotNameExecutionTimeViolin, folder=folder, y_label=y_label_Time, drawViolin=True)
             if self.generateBaseLine(index=baselineIndex):
                 self.__drawGraph(lambdaSpeedup, lambdaSpeedupError, plotNameSpeedup, folder, y_label_Speedup)
-                self.__drawGraph(lambdaScaleEfficiency, lambda x: 0, plotNameScaleEfficiency, folder, y_label_ScaleEff)
-                self.__drawGraphTwins(lambdaSpeedup, lambdaScaleEfficiency, lambdaSpeedupError, lambda x: 0, plotNameSpeedupScaleEfficiency, folder, y_label_Speedup, y_label_ScaleEff)
+                self.__drawGraph(lambdaParallelEfficiency, lambda x: 0, plotNameParallelEfficiency, folder, y_label_ScaleEff)
+                self.__drawGraphTwins(lambdaSpeedup, lambdaParallelEfficiency, lambdaSpeedupError, lambda x: 0, plotNameSpeedupParallelEfficiency, folder, y_label_Speedup, y_label_ScaleEff)
             else:
-                logging.warning(self.caseName + "$" + self.machine + ": Skipping speedup and scale efficiency because not all baselines were found")
+                logging.warning(self.caseName + "$" + self.machine + ": Skipping speedup and parallel efficiency because not all baselines were found")
 
 
 class TestCase:
@@ -363,9 +363,9 @@ class TestCase:
             self.__drawGraph(lambdaPerformanceTime, lambdaPerformanceTimeError, plotNameExecutionTime, folder, y_label_Time)
             if hasAllBaselines:
                 self.__drawGraph(lambdaSpeedup, lambdaSpeedupError, plotNameSpeedup, folder, y_label_Speedup)
-                self.__drawGraph(lambdaScaleEfficiency, lambda x: 0, plotNameScaleEfficiency, folder, y_label_ScaleEff)
+                self.__drawGraph(lambdaParallelEfficiency, lambda x: 0, plotNameParallelEfficiency, folder, y_label_ScaleEff)
             else:
-                logging.warning(self.caseName + ": Skipping speedup and scale efficiency because not all baselines were found")
+                logging.warning(self.caseName + ": Skipping speedup and parallel efficiency because not all baselines were found")
 
 
 # ------------------- program
