@@ -68,7 +68,7 @@ if args.no_error_bars:
 # global variables and read parameters
 #y_labels
 y_label_Time = f"time in {args.time_unit}"
-y_label_Speedup = f"speedup in {args.time_unit}/{args.time_unit}"
+y_label_Speedup = "speedup"
 y_label_ScaleEff= "parallel efficiency in %"
 x_label_numberThreads = "Number of threads used"
 if args.hide_x_label:
