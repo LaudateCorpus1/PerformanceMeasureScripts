@@ -53,10 +53,17 @@ cli.add_argument('--delim', '-d', nargs='?', default=';', dest='delim', help='Sp
 cli.add_argument('--outdir', '-o', nargs='?', default='out', dest='outdir', help='The directory to output the data. The directory is created when not existing. If files are already in there they are overwritten. Default: out')
 cli.add_argument('--time-unit', nargs='?', default='ms', dest='time_unit', help='The time unit to print as a label to the diagrams. Default: ms')
 cli.add_argument('--hide-x-label', action='store_true', dest='hide_x_label', help='Hides the x label from every Graph. Use this if the label does not fit your use case.')
+cli.add_argument('--no-error', action='store_true', dest='no_error_bars', help='Hide error bars')
 cli.add_argument('--defaultName', nargs='?', default='default', dest='defaultTestCaseName', help='Defines the default name of a test without a name in the identifier. Default: default')
 cli.add_argument('--baselineIndex', '-b', nargs='?', default=0, type=int, dest='baselineIndex', help='Define which index to assume for a baseline to calculate speedup and scalability Default: 0')
 cli.add_argument('input', nargs='?', type=argparse.FileType('r'), default=sys.stdin, help='File to read for input data. Defaults to reading stdin')
 args = cli.parse_args()
+
+
+# quick and easy way to remove array bars. Just make every error 0
+if args.no_error_bars:
+    lambdaPerformanceTimeError = lambda x: 0
+    lambdaSpeedupError = lambda x: 0
 
 # global variables and read parameters
 #y_labels
