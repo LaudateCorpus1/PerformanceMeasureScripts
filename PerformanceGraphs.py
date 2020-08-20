@@ -56,6 +56,8 @@ cli.add_argument('--hide-x-label', action='store_true', dest='hide_x_label', hel
 cli.add_argument('--no-error', action='store_true', dest='no_error_bars', help='Hide error bars')
 cli.add_argument('--defaultName', nargs='?', default='default', dest='defaultTestCaseName', help='Defines the default name of a test without a name in the identifier. Default: default')
 cli.add_argument('--baselineIndex', '-b', nargs='?', default=0, type=int, dest='baselineIndex', help='Define which index to assume for a baseline to calculate speedup and scalability Default: 0')
+cli.add_argument('--yscale', nargs='?', default=None, type=str, dest='yscale', help='Define yscale used for matplotlib plots e.g. log (for logarithmic scale) Defaults to matplotlib default')
+cli.add_argument('--xscale', nargs='?', default=None, type=str, dest='xscale', help='Define xscale used for matplotlib plots e.g. log (for logarithmic scale) Defaults to matplotlib default')
 cli.add_argument('input', nargs='?', type=argparse.FileType('r'), default=sys.stdin, help='File to read for input data. Defaults to reading stdin')
 args = cli.parse_args()
 
@@ -242,7 +244,7 @@ class MachineTestCase:
             run.calculateValuesFromBaseline(baseline)
         return True
 
-    def __drawGraph(self, mappingData=None, mappingError=None, plotName="", folder="", y_label="", drawViolin=False):
+    def __drawGraph(self, mappingData=None, mappingError=None, plotName="", folder="", y_label="", drawViolin=False, yscale=None, xscale=None):
         if not type(plotName) is str or plotName=="": raise BaseException("Expected plotName that is non empty string")
         if not type(folder) is str or folder=="": raise BaseException("Expected folder that is non empty string")
         plt.clf()
@@ -252,7 +254,11 @@ class MachineTestCase:
             self.drawPartFromLampda(mappingData, mappingError)
         plt.xlabel(x_label_numberThreads)
         plt.ylabel(y_label)
-        plt.ylim(bottom=0)
+        if xscale: plt.xscale(xscale)
+        if yscale:
+            plt.yscale(yscale)
+        else:
+            plt.ylim(bottom=0)
         createFolder(folder)
         plt.savefig(folder + "/" + plotName + ".pdf", bbox_inches='tight')
 
@@ -301,8 +307,8 @@ class MachineTestCase:
         # can't add label for violin plot therefor not adding it
         plt.violinplot(y_data, x_data, showmeans=True)
 
-    def drawAll(self, baselineIndex=0):
-        self.draw(baselineIndex=baselineIndex)
+    def drawAll(self, baselineIndex=0, yscale=None, xscale=None):
+        self.draw(baselineIndex=baselineIndex, yscale=yscale, xscale=xscale)
         for testRun in self.testRuns.values():
             testRun.draw()
 
@@ -310,16 +316,16 @@ class MachineTestCase:
         for testRun in self.testRuns.values():
             testRun.report()
 
-    def draw(self, baselineIndex=0):
+    def draw(self, baselineIndex=0, yscale=None, xscale=None):
         if len(self.testRuns) <= 1:
             logging.warning(self.caseName + "$" + self.machine + ": Skip drawing graphs because only one datapoint to draw")
         else:
             folder = self.__createTestCaseFolder()
-            self.__drawGraph(lambdaPerformanceTime, lambdaPerformanceTimeError, plotNameExecutionTime, folder, y_label_Time)
-            self.__drawGraph(lambdaData, plotName=plotNameExecutionTimeViolin, folder=folder, y_label=y_label_Time, drawViolin=True)
+            self.__drawGraph(lambdaPerformanceTime, lambdaPerformanceTimeError, plotNameExecutionTime, folder, y_label_Time, yscale=yscale, xscale=xscale)
+            self.__drawGraph(lambdaData, plotName=plotNameExecutionTimeViolin, folder=folder, y_label=y_label_Time, drawViolin=True, yscale=yscale, xscale=xscale)
             if self.generateBaseLine(index=baselineIndex):
-                self.__drawGraph(lambdaSpeedup, lambdaSpeedupError, plotNameSpeedup, folder, y_label_Speedup)
-                self.__drawGraph(lambdaParallelEfficiency, lambda x: 0, plotNameParallelEfficiency, folder, y_label_ScaleEff)
+                self.__drawGraph(lambdaSpeedup, lambdaSpeedupError, plotNameSpeedup, folder, y_label_Speedup, yscale=yscale, xscale=xscale)
+                self.__drawGraph(lambdaParallelEfficiency, lambda x: 0, plotNameParallelEfficiency, folder, y_label_ScaleEff, yscale=yscale, xscale=xscale)
                 self.__drawGraphTwins(lambdaSpeedup, lambdaParallelEfficiency, lambdaSpeedupError, lambda x: 0, plotNameSpeedupParallelEfficiency, folder, y_label_Speedup, y_label_ScaleEff)
             else:
                 logging.warning(self.caseName + "$" + self.machine + ": Skipping speedup and parallel efficiency because not all baselines were found")
@@ -345,7 +351,7 @@ class TestCase:
         createFolder(folder)
         return folder
 
-    def __drawGraph(self, mappingData=None, mappingError=None, plotName="", folder="", y_label=""):
+    def __drawGraph(self, mappingData=None, mappingError=None, plotName="", folder="", y_label="", yscale=None, xscale=None):
         if not type(plotName) is str or plotName=="": raise BaseException("Expected plotName that is non empty string")
         if not type(folder) is str or folder=="": raise BaseException("Expected folder that is non empty string")
         plt.clf()
@@ -353,12 +359,16 @@ class TestCase:
             machine.drawPartFromLampda(mappingData, mappingError)
         plt.xlabel(x_label_numberThreads)
         plt.ylabel(y_label)
-        plt.ylim(bottom=0)
+        if xscale: plt.xscale(xscale)
+        if yscale:
+            plt.yscale(yscale)
+        else:
+            plt.ylim(bottom=0)
         plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
         createFolder(folder)
         plt.savefig(folder + "/" + plotName + ".pdf", bbox_inches='tight')
 
-    def __drawGraphBar(self, mappingData=None, mappingError=None, plotName="", folder="", y_label=""):
+    def __drawGraphBar(self, mappingData=None, mappingError=None, plotName="", folder="", y_label="", yscale=None, xscale=None):
         if not type(plotName) is str or plotName=="": raise BaseException("Expected plotName that is non empty string")
         if not type(folder) is str or folder=="": raise BaseException("Expected folder that is non empty string")
         plt.clf()
@@ -369,21 +379,25 @@ class TestCase:
             offset += width
         plt.xlabel(x_label_numberThreads)
         plt.ylabel(y_label)
-        plt.ylim(bottom=0)
+        if xscale: plt.xscale(xscale)
+        if yscale:
+            plt.yscale(yscale)
+        else:
+            plt.ylim(bottom=0)
         plt.legend(bbox_to_anchor=(1.05, 1), loc='upper left', borderaxespad=0.)
         createFolder(folder)
         plt.savefig(folder + "/" + plotName + "Bar.pdf", bbox_inches='tight')
 
-    def drawAll(self, baselineIndex=0):
-        self.draw(baselineIndex=baselineIndex)
+    def drawAll(self, baselineIndex=0, yscale=None, xscale=None):
+        self.draw(baselineIndex=baselineIndex, yscale=yscale, xscale=xscale)
         for machine in self.machines.values():
-            machine.drawAll(baselineIndex=baselineIndex)
+            machine.drawAll(baselineIndex=baselineIndex, yscale=yscale, xscale=xscale)
 
     def reportAll(self):
         for testRun in self.machines.values():
             testRun.reportAll()
 
-    def draw(self, baselineIndex=0):
+    def draw(self, baselineIndex=0, yscale=None, xscale=None):
         if len(self.machines) <= 1:
             logging.warning(self.caseName + ": Skip drawing graphs because only one datapoint to draw")
         else:
@@ -391,13 +405,13 @@ class TestCase:
             hasAllBaselines = True
             for machine in self.machines.values():
                 if not machine.generateBaseLine(index=baselineIndex): hasAllBaselines = False
-            self.__drawGraph(lambdaPerformanceTime, lambdaPerformanceTimeError, plotNameExecutionTime, folder, y_label_Time)
-            self.__drawGraphBar(lambdaPerformanceTime, lambdaPerformanceTimeError, plotNameExecutionTime, folder, y_label_Time)
+            self.__drawGraph(lambdaPerformanceTime, lambdaPerformanceTimeError, plotNameExecutionTime, folder, y_label_Time, yscale=yscale, xscale=xscale)
+            self.__drawGraphBar(lambdaPerformanceTime, lambdaPerformanceTimeError, plotNameExecutionTime, folder, y_label_Time, yscale=yscale, xscale=xscale)
             if hasAllBaselines:
-                self.__drawGraph(lambdaSpeedup, lambdaSpeedupError, plotNameSpeedup, folder, y_label_Speedup)
-                self.__drawGraphBar(lambdaSpeedup, lambdaSpeedupError, plotNameSpeedup, folder, y_label_Speedup)
-                self.__drawGraph(lambdaParallelEfficiency, lambda x: 0, plotNameParallelEfficiency, folder, y_label_ScaleEff)
-                self.__drawGraphBar(lambdaParallelEfficiency, lambda x: 0, plotNameParallelEfficiency, folder, y_label_ScaleEff)
+                self.__drawGraph(lambdaSpeedup, lambdaSpeedupError, plotNameSpeedup, folder, y_label_Speedup, yscale=yscale, xscale=xscale)
+                self.__drawGraphBar(lambdaSpeedup, lambdaSpeedupError, plotNameSpeedup, folder, y_label_Speedup, yscale=yscale, xscale=xscale)
+                self.__drawGraph(lambdaParallelEfficiency, lambda x: 0, plotNameParallelEfficiency, folder, y_label_ScaleEff, yscale=yscale, xscale=xscale)
+                self.__drawGraphBar(lambdaParallelEfficiency, lambda x: 0, plotNameParallelEfficiency, folder, y_label_ScaleEff, yscale=yscale, xscale=xscale)
             else:
                 logging.warning(self.caseName + ": Skipping speedup and parallel efficiency because not all baselines were found")
 
@@ -430,6 +444,6 @@ for testCaseString in args.input:# go through each line of the input
 # Output all diagrams to disk
 for testCase in testcases.values():
     print("Start drawing test case: " + testCase.caseName)
-    testCase.drawAll(baselineIndex=args.baselineIndex)
+    testCase.drawAll(baselineIndex=args.baselineIndex, yscale=args.yscale, xscale=args.xscale)
     print("Start report for test case: " + testCase.caseName)
     testCase.reportAll()
